@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}Upload{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+    <div>{{ dates }}</div>
+    <p style="color:blue;">
+        Unfortunately, Litter Robot 4 does not include the year with the data it provides.<br />
+        Please select the year in which the data you are uploading occurs.<br />
+        <b>Please also ensure all data being uploaded at the same time occers within the same year.</b>
+    </p>
+    <form method = "POST" enctype="multipart/form-data" action = "/upload">    
+        <input type="file" name="files" accept=".csv" multiple>
+        <select name="year">
+            {% for i in range(5) %}
+                <option value="{{ this_year - i }}"> {{ this_year - i }}</option>
+            {% endfor %}
+        </select>
+        <input type = "submit" value="Upload">  
+    </form>
+    <div id="instructions">
+        <h2>Instructions for obtaining CSV files from the Litter Robot app:</h2>
+        <h3>Navigate to the "History" tab at the bottom of your screen. Select "Download History."</h3>
+        <img src="{{ url_for('static', filename='images/IMG_0902.jpg') }}">
+        <h3>
+            - Select the "CSV" option. Make sure "Pet Weight" is selected.<br />
+            - Select a range of dates that fall within the <b>same year</b>.<br />
+            - The Litter Robot app struggles to fetch data in ranges much larger than one month. 
+            You may have to download each month individualy. You can upload as many CSV files as you like here at the same time, as long as all the data falls within the same year.
+            If you have data that spans multiple years, please separate the files by year when uploading, due to the constraints of the data Litter Robot provides.
+        </h3>
+
+        <img src="{{ url_for('static', filename='images/IMG_0903.jpg') }}">
+    </div>
+    
+{% endblock %}

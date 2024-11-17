@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}Delete{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+    <form method="post" action="/delete">
+        <label for="start">Start:</label>
+        <input type="date" id="date" name="start">
+        <label for="end">End:</label>
+        <input type="date" id="date" name="end">
+        <input type="submit" value="Delete">
+    </form>
+    <form method="post" action="/delete/all">
+        <input type="submit" value="Delete all data" style="color:red;">
+    </form>
+    <div>{{ ddf }}</div>
+{% endblock %}

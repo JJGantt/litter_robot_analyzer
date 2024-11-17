@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block header %}
+    <h1>{% block title %}Profile{% endblock %}</h1>
+    {% if g.user %}
+        <a class="action" href="{{ url_for('profile.delete') }}">Delete</a>
+        <a class="action" href="{{ url_for('profile.upload') }}">Upload</a>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    {% if is_data %}
+
+        <h3>Plot of all weight recorded events:</h3>
+        <img src="{{ url_for('static', filename='images/plot.png') }}">
+        <h3>Outlying data points cleaned and distinct cats identified:</h3>
+        <img src="{{ url_for('static', filename='images/cleaned_plot.png') }}">
+        <h3>Frequency of robot use broken down by hour per individual cat:</h3>
+        <img src="{{ url_for('static', filename='images/by_hour_plot.png') }}">
+        <div>{{ test|safe }}</div>
+        <h3>Raw data:</h3>
+        <div>{{ data|safe }}</div>
+        <div>{{ html_df|safe }}</div>
+    {% else %}
+        <h1 style="color: red;">Please log in and follow the instructions to upload your Litter Robot 4 CSV files. After uploading your files, the results of your data analysis will be displayed just like the example output below.</h1>
+        <h2>Example output:</h2>
+        <h3>Plot of all weight recorded events:</h3>
+        <img src="{{ url_for('static', filename='images/ex_raw_plot.png') }}">
+        <h3>Outlying data points cleaned and distinct cats identified:</h3>
+        <img src="{{ url_for('static', filename='images/ex_cleaned_plot.png') }}">
+        <h3>Frequency of robot use broken down by hour per individual cat:</h3>
+        <img src="{{ url_for('static', filename='images/ex_hour_plot.png') }}">
+
+    {% endif %}
+
+{% endblock %}
+
