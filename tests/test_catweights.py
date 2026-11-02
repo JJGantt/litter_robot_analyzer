@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from logic import identify_cats, identify_and_clean
+from catweights import identify_cats, identify_and_clean
 
 
 def synthetic(weights, per_cat=60):

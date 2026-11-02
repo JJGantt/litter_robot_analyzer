@@ -1,16 +1,20 @@
-import base64
-import io
+"""Separate the weigh-ins of several cats sharing one Litter-Robot scale.
 
+The robot logs every visit's weight but not which cat it was. Each cat's weight drifts over months,
+so a fixed weight band per cat mislabels visits as the cats gain or lose. Instead each cat gets a
+trend line: visits go to the nearest line, the lines are refit on what they were given, and local
+outliers (a cat stepping half on, litter shifting) are dropped between passes.
+"""
 import numpy as np
 import pandas as pd
 from datetime import datetime
 from scipy.stats import linregress
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 plt.rcParams['figure.figsize'] = [10, 5]
 
 def to_date_object(date, year):
-    #x = re.search(r"^\d*", date)
-    #month = int(x.group())
     new_date = f'{year} {date}'
     date_object = datetime.strptime(new_date, '%Y %m/%d %I:%M%p')
     return date_object
@@ -20,6 +24,7 @@ def weight_to_float(weight):
 
 
 def csv_to_df(csv, year):
+    """One month of the Whisker app's activity export. Its timestamps carry no year."""
     colnames = ['Action', 'Date', 'Weight']
     df = pd.read_csv(csv, names=colnames, index_col=None, header=0)
 
@@ -30,25 +35,23 @@ def csv_to_df(csv, year):
 
     return df
 
-# Plots are returned as PNG data URIs for the page to embed. Writing them to a
-# shared file under static/ would serve one user's data to whoever loads that
-# URL next. Each figure is closed once rendered; pyplot keeps every open figure
-# alive for the life of the process otherwise.
-def figure_data_uri(fig):
-    buf = io.BytesIO()
-    fig.savefig(buf, format='png')
+def save(fig, path):
+    fig.savefig(path, bbox_inches='tight')
     plt.close(fig)
-    return 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode('ascii')
 
 def plot_scatter(df):
     df['Date '] = df.Date
-    plot = df.plot(kind='scatter', x='Date ', y='Weight')
-    return figure_data_uri(plot.figure)
+    plot = df.plot(kind='scatter', x='Date ', y='Weight', s=8)
+    plot.set_title('Every recorded visit')
+    plot.set_ylabel('Weight (lb)')
+    return plot.figure
 
 def plot_cleaned_scatter(df):
     df['Date '] = df.Date
-    plot = df.plot(kind='scatter', x='Date ', y='Weight', c=df['Cat'], cmap='tab10', colorbar=False)
-    return figure_data_uri(plot.figure)
+    plot = df.plot(kind='scatter', x='Date ', y='Weight', c=df['Cat'], cmap='tab10', colorbar=False, s=8)
+    plot.set_title('Visits assigned to each cat, outliers removed')
+    plot.set_ylabel('Weight (lb)')
+    return plot.figure
 
 def plot_by_hour(df):
     df['Month'] = df['Date'].dt.month
@@ -60,7 +63,9 @@ def plot_by_hour(df):
 
     plot = by_hour_df.plot(kind='line', marker='o')
     plot.set_xticks(by_hour_df.index)
-    return figure_data_uri(plot.figure)
+    plot.set_title('Visits by hour of day, per cat')
+    plot.set_ylabel('Visits')
+    return plot.figure
 
 def identify_cats(input_df, cat_count, lines=None):
     df = input_df.copy()
