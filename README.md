@@ -10,3 +10,7 @@ The app reads two environment variables and will not start without `SECRET_KEY`:
 | `DATABASE_URL` | Postgres connection URL (`postgres://user:pass@host:port/db`). `init_db.py` creates the tables in it, dropping any that exist. |
 
 Run with `gunicorn app:app` (the `Procfile`).
+
+## Tests
+
+`pip install -r requirements.txt pytest && pytest` runs the cat-identification tests in `tests/`.

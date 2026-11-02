@@ -12,11 +12,11 @@
     {% if is_data %}
 
         <h3>Plot of all weight recorded events:</h3>
-        <img src="{{ url_for('static', filename='images/plot.png') }}">
+        <img src="{{ raw_plot }}">
         <h3>Outlying data points cleaned and distinct cats identified:</h3>
-        <img src="{{ url_for('static', filename='images/cleaned_plot.png') }}">
+        <img src="{{ cleaned_plot }}">
         <h3>Frequency of robot use broken down by hour per individual cat:</h3>
-        <img src="{{ url_for('static', filename='images/by_hour_plot.png') }}">
+        <img src="{{ hour_plot }}">
         <div>{{ test|safe }}</div>
         <h3>Raw data:</h3>
         <div>{{ data|safe }}</div>

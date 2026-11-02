@@ -1,11 +1,8 @@
-import os
 import datetime
 from flask import (
     Blueprint, flash, g, redirect, render_template, request, url_for, session
 )
-from werkzeug.exceptions import abort
 import pandas as pd
-import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('agg')
 
@@ -33,19 +30,19 @@ def index():
         df.columns = ['Date', 'Weight']
         df.Date = df.Date.apply(lambda x: pd.to_datetime(x, unit='s'))
 
-        print('#*********trying to plot scatter')
-        plot_scatter(df.copy())
+        raw_plot = plot_scatter(df.copy())
         df, _ = identify_and_clean(df, 3)
 
-        print('#*********trying to plot cleaned scatter')
-        plot_cleaned_scatter(df.copy())
-        print('#*********trying hourly plot')
-        plot_by_hour(df.copy())
+        cleaned_plot = plot_cleaned_scatter(df.copy())
+        hour_plot = plot_by_hour(df.copy())
 
-        df.drop(columns='x')
+        df = df.drop(columns='x')
         df.sort_values(by='Date', inplace=True)
 
-        return render_template('profile/index.html', data=df.to_html(), is_data=True)
+        return render_template(
+            'profile/index.html', data=df.to_html(), is_data=True,
+            raw_plot=raw_plot, cleaned_plot=cleaned_plot, hour_plot=hour_plot,
+        )
     
     #return redirect('auth/login')
     return render_template('profile/index.html', is_data=False)

@@ -1,7 +1,9 @@
-import os
+import base64
+import io
+
 import numpy as np
 import pandas as pd
-from datetime import datetime, date
+from datetime import datetime
 from scipy.stats import linregress
 import matplotlib.pyplot as plt
 plt.rcParams['figure.figsize'] = [10, 5]
@@ -19,16 +21,9 @@ def weight_to_float(weight):
     return float(weight.split()[0]) if weight != '-' else 0
 
 
-def csv_to_df(csvs, year):
+def csv_to_df(csv, year):
     colnames = ['Action', 'Date', 'Weight']
-    try: 
-        df = pd.read_csv(csvs, names=colnames, index_col=None, header=0)
-    except:
-        df_list = []
-        for csv in csvs:
-            df = pd.read_csv(csv, names=colnames, index_col=None, header=0)
-            df_list.append(df)
-        df = pd.concat(df_list, axis=0, ignore_index=True)
+    df = pd.read_csv(csv, names=colnames, index_col=None, header=0)
 
     df = df[df['Weight'] != '-']
 
@@ -37,19 +32,25 @@ def csv_to_df(csvs, year):
 
     return df
 
+# Plots are returned as PNG data URIs for the page to embed. Writing them to a
+# shared file under static/ would serve one user's data to whoever loads that
+# URL next. Each figure is closed once rendered; pyplot keeps every open figure
+# alive for the life of the process otherwise.
+def figure_data_uri(fig):
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png')
+    plt.close(fig)
+    return 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode('ascii')
+
 def plot_scatter(df):
     df['Date '] = df.Date
     plot = df.plot(kind='scatter', x='Date ', y='Weight')
-
-    plot.figure.savefig(os.path.join('static', 'images', 'plot.png'))
-    return
+    return figure_data_uri(plot.figure)
 
 def plot_cleaned_scatter(df):
     df['Date '] = df.Date
     plot = df.plot(kind='scatter', x='Date ', y='Weight', c=df['Cat'], cmap='tab10', colorbar=False)
-    
-    plot.figure.savefig(os.path.join('static', 'images', 'cleaned_plot.png'))
-    return
+    return figure_data_uri(plot.figure)
 
 def plot_by_hour(df):
     df['Month'] = df['Date'].dt.month
@@ -60,11 +61,12 @@ def plot_by_hour(df):
     by_hour_df = grouped_df.pivot(index='Hour', columns='Cat', values='count')
 
     plot = by_hour_df.plot(kind='line', marker='o')
-    plt.xticks(by_hour_df.index)
-    plot.figure.savefig(os.path.join('static', 'images', 'by_hour_plot.png'))
+    plot.set_xticks(by_hour_df.index)
+    return figure_data_uri(plot.figure)
 
-def identify_cats(input_df, cat_count, lines={}):
+def identify_cats(input_df, cat_count, lines=None):
     df = input_df.copy()
+    lines = {} if lines is None else lines
 
     if not lines:
         df.sort_values(by='Weight', inplace=True)
@@ -76,14 +78,12 @@ def identify_cats(input_df, cat_count, lines={}):
         for line_id, n_tile_start in enumerate(n_tile_starts): 
             n_tile_end = n_tile_start + n_tile_size
             line_data = df.iloc[n_tile_start:n_tile_end]
-            
-            line_data.plot(kind='scatter', x='Date', y='Weight')
 
             slope, intercept, _, _, _ = linregress(line_data['x'], line_data['Weight'])
             lines[line_id] = (slope, intercept)
 
-    residuals = np.zeros((len(df), 3))
-    for line_id in range(3):
+    residuals = np.zeros((len(df), cat_count))
+    for line_id in range(cat_count):
         slope, intercept = lines[line_id]
         predicted_y = slope * df['x'] + intercept
         residuals[:, line_id] = df['Weight'] - predicted_y
@@ -113,7 +113,6 @@ def clean_outliers(input_df):
             lower_bound = Q1 - 1
             upper_bound = Q3 + 1
 
-            weight = df.iloc[i]['Weight']
 
             outliers = (local_data['Weight'] < lower_bound) | (local_data['Weight'] > upper_bound)
 
