@@ -1,41 +1,7 @@
-import sqlite3
 import os
+from contextlib import contextmanager
 import psycopg2
 from urllib.parse import urlparse
-
-import click
-from flask import current_app, g 
-
-def get_db():
-    if 'db' not in g:
-        g.db = sqlite3.connect(
-            current_app.config['DATABASE'], 
-            detect_types=sqlite3.PARSE_DECLTYPES
-        )
-        g.db.row_factory = sqlite3.Row
-
-    return g.db
-
-def close_db(e=None):
-    db = g.pop('db', None)
-
-    if db is not None:
-        db.close()
-
-def init_db():
-    db = get_db()
-
-    with current_app.open_resource('schema.sql') as f:
-        db.executescript(f.read().decode('utf8'))
-
-@click.command('init-db')
-def init_db_command():
-    init_db()
-    click.echo('Initialized the database.')
-
-def init_app(app):
-    app.teardown_appcontext(close_db)
-    app.cli.add_command(init_db_command)
 
 #dev connect
 '''
@@ -49,6 +15,16 @@ def get_db_connection():
     return conn
 
 '''
+@contextmanager
+def db_cursor():
+    """A cursor on a fresh connection, both closed on every exit path."""
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            yield conn, cur
+    finally:
+        conn.close()
+
 def get_db_connection():
     DATABASE_URL = os.environ.get('DATABASE_URL')
 

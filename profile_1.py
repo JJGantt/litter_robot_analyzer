@@ -10,7 +10,7 @@ import matplotlib
 matplotlib.use('agg')
 
 from auth import login_required
-from db import get_db, get_db_connection
+from db import db_cursor
 from logic import csv_to_df, plot_scatter, identify_and_clean, plot_cleaned_scatter, plot_by_hour
 
 
@@ -20,12 +20,9 @@ bp = Blueprint('profile', __name__)
 def index():
     
     if hasattr(g, 'user') and g.user:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute('SELECT poopdate, weight FROM data WHERE userid = %s;', (g.user['user_id'],))
-        data = cur.fetchall()
-        cur.close()
-        conn.close()
+        with db_cursor() as (_, cur):
+            cur.execute('SELECT poopdate, weight FROM data WHERE userid = %s;', (g.user['user_id'],))
+            data = cur.fetchall()
         
         df = pd.DataFrame(data)
 
@@ -54,6 +51,7 @@ def index():
     return render_template('profile/index.html', is_data=False)
 
 @bp.route('/upload', methods=['GET', 'POST'])
+@login_required
 def upload():
     this_year = datetime.date.today().year
     if request.method == 'POST':
@@ -62,34 +60,30 @@ def upload():
         year = request.form['year']
         if not year:
             year = this_year
-        conn = get_db_connection()
-        cur = conn.cursor()
+        with db_cursor() as (conn, cur):
+            #get list of dates already in database
+            cur.execute('SELECT poopdate FROM data WHERE userid = %s;', (user_id,))
+            dates = {row[0] for row in cur.fetchall()}
 
-
-        print(f'****connected to db***** conn={conn}')
-        #get list of dates already in database
-        cur.execute('SELECT poopdate FROM data WHERE userid = %s;', (user_id,))
-        dates = list(cur.fetchall())
-
-        for f in files:
-            df = csv_to_df(f, year)
-            for i, row in df.iterrows():
-                date = row.Date.timestamp()
-                if (date,) not in dates:
-                    cur.execute(
-                        'INSERT INTO data (userid, poopdate, weight)'
-                        'VALUES (%s, %s, %s)',
-                        (user_id, int(date), row.Weight)
-                    )
-                    conn.commit()
-        cur.close()
-        conn.close()
+            for f in files:
+                df = csv_to_df(f, year)
+                for i, row in df.iterrows():
+                    date = int(row.Date.timestamp())
+                    if date not in dates:
+                        cur.execute(
+                            'INSERT INTO data (userid, poopdate, weight)'
+                            'VALUES (%s, %s, %s)',
+                            (user_id, date, row.Weight)
+                        )
+                        dates.add(date)
+            conn.commit()
         
         return redirect(url_for('index'))
         
     return render_template('profile/upload.html', this_year=this_year)
 
 @bp.route('/delete', methods=['GET', 'POST'])
+@login_required
 def delete():
     start='start'
     end='end'
@@ -98,32 +92,26 @@ def delete():
         start = pd.to_datetime(request.form['start']).timestamp()
         end = pd.to_datetime(request.form['end']).timestamp()
 
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute(
-            'DELETE FROM data WHERE userid=%s ' 
-            'AND poopdate BETWEEN %s AND %s;',
-            (user_id, start, end)
-        )
-        conn.commit()
-        cur.close()
-        conn.close()
+        with db_cursor() as (conn, cur):
+            cur.execute(
+                'DELETE FROM data WHERE userid=%s '
+                'AND poopdate BETWEEN %s AND %s;',
+                (user_id, start, end)
+            )
+            conn.commit()
 
         return redirect(url_for('index'))
 
     return render_template('profile/delete.html')
 
 @bp.route('/delete/all', methods=['POST'])
+@login_required
 def delete_all():
-    conn = get_db_connection()
-    cur = conn.cursor()
-
-    cur.execute(
-        'DELETE FROM data WHERE userid = %s;', (session.get('user_id'),)
-    )
-    conn.commit()
-    cur.close()
-    conn.close()
+    with db_cursor() as (conn, cur):
+        cur.execute(
+            'DELETE FROM data WHERE userid = %s;', (session.get('user_id'),)
+        )
+        conn.commit()
 
     return redirect(url_for('index'))
     
