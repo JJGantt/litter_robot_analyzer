@@ -8,8 +8,6 @@ from scipy.stats import linregress
 import matplotlib.pyplot as plt
 plt.rcParams['figure.figsize'] = [10, 5]
 
-pd.options.mode.copy_on_write = True
-
 def to_date_object(date, year):
     #x = re.search(r"^\d*", date)
     #month = int(x.group())
@@ -69,7 +67,7 @@ def identify_cats(input_df, cat_count, lines=None):
     lines = {} if lines is None else lines
 
     if not lines:
-        df.sort_values(by='Weight', inplace=True)
+        df = df.sort_values(by='Weight')
 
         num_data_points = len(df)
         n_tile_size = num_data_points // (cat_count * 3)
@@ -94,7 +92,7 @@ def identify_cats(input_df, cat_count, lines=None):
 
 def clean_outliers(input_df):
     df = input_df.copy()
-    df.sort_values(by='Date', inplace=True)
+    df = df.sort_values(by='Date')
     
     window_size = 100 
     outliers_found = True
@@ -120,8 +118,7 @@ def clean_outliers(input_df):
                 outlier_indices.append(j)
 
         if outlier_indices:
-            df.drop(outlier_indices, inplace=True)
-            df.reset_index(drop = True, inplace=True)
+            df = df.drop(outlier_indices).reset_index(drop=True)
         else:
             outliers_found = False
         

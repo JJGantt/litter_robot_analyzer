@@ -37,7 +37,7 @@ def index():
         hour_plot = plot_by_hour(df.copy())
 
         df = df.drop(columns='x')
-        df.sort_values(by='Date', inplace=True)
+        df = df.sort_values(by='Date')
 
         return render_template(
             'profile/index.html', data=df.to_html(), is_data=True,
