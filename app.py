@@ -3,7 +3,13 @@ import os
 from flask import Flask
 
 app = Flask(__name__, instance_relative_config=True)
+
+# Signs the session cookie, so anyone holding it can log in as any user. It
+# comes from the environment and the app refuses to start without it.
 app.secret_key = os.environ.get('SECRET_KEY')
+if not app.secret_key:
+    raise RuntimeError('SECRET_KEY is not set')
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 @app.route('/hello')
 def hello():
